@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Open-core guardrail: block commits containing pro-tier keywords in the staged diff.
+set -euo pipefail
+
+KEYWORDS='license|multi-project|multiproject|dashboard|pro-tier|protier|paywall|upgrade to pro|ghlg-pro|ghostlog-pro'
+
+# CLAUDE.md and this hook legitimately mention the keywords — exclude them.
+matches=$(git diff --cached -- . ':(exclude)CLAUDE.md' ':(exclude)hooks/pre-commit' | grep -inE "$KEYWORDS" || true)
+
+if [ -n "$matches" ]; then
+  echo "COMMIT BLOCKED: pro-tier keywords found in staged diff." >&2
+  echo "These belong in the private GHLG-pro repo:" >&2
+  echo "$matches" >&2
+  exit 1
+fi
