@@ -2,15 +2,26 @@
  * Compile view: turn captured entries into a document, and optionally
  * export it as a real file — the only place the user chooses where
  * Ghostlog writes to (Settings > Output folder).
- * Scopes: this session / this day (enabled), this week (visible, disabled).
+ * Scopes: this session / this day / this week (the 7 days ending on the
+ * session's date).
  */
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { invoke } from "@tauri-apps/api/core";
 import { compileEntries } from "../lib/ai-stub";
-import { readSession, listSessions } from "../lib/session";
+import { readSession, listSessions, listDates } from "../lib/session";
 
-type Scope = "session" | "day";
+type Scope = "session" | "day" | "week";
+
+/**
+ * The 7 calendar days ending on `date`, as an inclusive YYYY-MM-DD lower
+ * bound. All-UTC arithmetic so no timezone can shift the day.
+ */
+function weekStart(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 6);
+  return d.toISOString().slice(0, 10);
+}
 
 export default function Compile({
   date,
@@ -32,14 +43,30 @@ export default function Compile({
     setExportResult(null);
     setExportError(null);
     try {
-      let markdowns: string[] = [];
+      const markdowns: string[] = [];
       if (nextScope === "session") {
         const entries = await readSession(date, sessionId);
-        markdowns = entries.map((e) => `## ${e.title}\n\n${e.summary}`);
-      } else {
+        markdowns.push(...entries.map((e) => `## ${e.title}\n\n${e.summary}`));
+      } else if (nextScope === "day") {
         for (const s of await listSessions(date)) {
           const entries = await readSession(date, s.sessionId);
           markdowns.push(...entries.map((e) => `## ${e.title}\n\n${e.summary}`));
+        }
+      } else {
+        // Week = the 7 calendar days ending on this session's date. Titles
+        // carry their date so the model can keep the chronology straight
+        // when entries span several days.
+        const from = weekStart(date);
+        const weekDates = (await listDates())
+          .filter((d) => d >= from && d <= date)
+          .sort();
+        for (const d of weekDates) {
+          for (const s of await listSessions(d)) {
+            const entries = await readSession(d, s.sessionId);
+            markdowns.push(
+              ...entries.map((e) => `## [${d}] ${e.title}\n\n${e.summary}`),
+            );
+          }
         }
       }
       setScope(nextScope);
@@ -89,11 +116,12 @@ export default function Compile({
             This day
           </button>
           <button
-            disabled
-            title="Coming soon"
-            className="text-sm border border-edge text-fg-faint px-3 py-1.5 rounded-md cursor-not-allowed"
+            onClick={() => compile("week")}
+            disabled={busy}
+            title="The 7 days ending on this session's date"
+            className="text-sm border border-edge-strong hover:border-fg-muted disabled:opacity-50 text-fg-muted hover:text-fg px-3 py-1.5 rounded-md transition-colors"
           >
-            This week — coming soon
+            This week
           </button>
         </div>
       </header>
