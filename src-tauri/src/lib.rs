@@ -95,6 +95,11 @@ pub fn run() {
             tray::init(app.handle())?;
             // Restore the previously chosen watched folder, if any.
             storage::load_config(app.handle());
+            // Watching starts automatically: combined with launch-at-login
+            // the app is "perpetually on" — no start button to remember.
+            if let Err(e) = watcher::start(app.handle()) {
+                eprintln!("Ghostlog: auto-start watching skipped: {e}");
+            }
             Ok(())
         })
         .on_window_event(|window, event| {

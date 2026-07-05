@@ -1,9 +1,6 @@
 /**
  * Settings — watched folder, trigger toggles, extension status,
- * launch-at-login, about, and the presentational-only "Ghostlog Pro" section.
- *
- * The Pro section below is disabled and purely visual per CLAUDE.md: it
- * must never import from src/pro-stub/ or wire up real logic.
+ * launch-at-login, and about.
  */
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -291,10 +288,6 @@ export default function Settings({
           >
             {aiSaved ? "Saved" : "Save"}
           </button>
-          {/* Presentational only — no working preset list, no pro-stub import. */}
-          <p className="text-xs text-fg-faint pt-1 border-t border-edge">
-            Ready-made provider presets are available in Ghostlog Pro.
-          </p>
         </div>
       </section>
 
@@ -319,24 +312,6 @@ export default function Settings({
       </section>
 
       {error && <p className="text-sm text-accent font-mono">{error}</p>}
-
-      {/* Presentational only — no imports from src/pro-stub/, no working logic. */}
-      <section className="opacity-50">
-        <h2 className="text-xs text-fg-faint uppercase tracking-wide mb-1 flex items-center gap-2">
-          Ghostlog Pro
-        </h2>
-        <div className="bg-panel border border-edge rounded-lg px-4 divide-y divide-edge">
-          <Row title="Multi-project management" description="Coming soon">
-            <span className="text-xs text-fg-faint border border-edge-strong rounded px-2 py-0.5">Pro</span>
-          </Row>
-          <Row title="License" description="Coming soon">
-            <span className="text-xs text-fg-faint border border-edge-strong rounded px-2 py-0.5">Pro</span>
-          </Row>
-          <Row title="Dashboard" description="Coming soon">
-            <span className="text-xs text-fg-faint border border-edge-strong rounded px-2 py-0.5">Pro</span>
-          </Row>
-        </div>
-      </section>
     </div>
   );
 }
