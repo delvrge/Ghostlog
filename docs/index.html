@@ -56,11 +56,35 @@
   footer{padding:48px 0 80px; text-align:center; color:var(--muted); font-size:.9rem}
   footer a{color:var(--muted)}
   code{background:var(--surface); padding:2px 6px; border-radius:4px; font-size:.9em}
+
+  .shot-placeholder{
+    width:100%; aspect-ratio:16/10; border-radius:10px; border:1px solid var(--border);
+    background:#1c1c1f; margin-bottom:14px;
+  }
+
+  .hero{position:relative}
+  .why-local-first{position:relative}
+  .decor{position:absolute; width:170px; opacity:.92; pointer-events:none}
+  .decor-left{left:40px; top:150px}
+  .decor-right{right:40px; top:60px}
+  @media (max-width:1200px){ .decor{display:none} }
+
+  .grid{grid-template-columns:repeat(2, 1fr); gap:28px}
+  .card{padding:28px}
+  .card h3{font-size:1.15rem; margin-bottom:12px}
+  .card p{font-size:1rem; line-height:1.6}
+
+  ::-webkit-scrollbar{width:12px}
+  ::-webkit-scrollbar-track{background:var(--surface)}
+  ::-webkit-scrollbar-thumb{background-color:#ef233c; border-radius:999px; border:3px solid var(--surface)}
+  ::-webkit-scrollbar-thumb:hover{background-color:#c81c30}
+  html{scrollbar-color:#ef233c var(--surface)}
 </style>
 </head>
 <body>
 
 <header class="hero">
+  <img class="decor decor-left" src="assets/ghost.png" alt="" />
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>GHOSTLOG</span></div>
     <h1>A dev-notes tool that never phones home.</h1>
@@ -99,29 +123,30 @@
       <div class="shot-block">
         <h3>Home</h3>
         <p>The tray-owned review window: watch status, one-click manual capture per project, and the most recent capture.</p>
-        <img class="shot" src="screenshots/home.png" alt="Ghostlog Home screen" />
+        <div class="shot-placeholder"></div>
       </div>
       <div class="shot-block">
         <h3>Archive</h3>
         <p>Every session, browsable by date and searchable across all entries by title, tag, or summary text.</p>
-        <img class="shot" src="screenshots/archive.png" alt="Ghostlog Archive screen" />
+        <div class="shot-placeholder"></div>
       </div>
       <div class="shot-block">
         <h3>Settings → AI provider</h3>
         <p>Point Ghostlog at a local llama.cpp server. Nothing is sent anywhere until you set this; leave it blank to keep using mock summaries.</p>
-        <img class="shot" src="screenshots/settings-ai-provider.png" alt="Ghostlog Settings AI provider panel" />
+        <div class="shot-placeholder"></div>
       </div>
     </div>
   </div>
 </section>
 
-<section>
+<section class="why-local-first">
+  <img class="decor decor-right" src="assets/ghost.png" alt="" />
   <div class="wrap">
     <h2>Why local-first</h2>
     <div class="grid">
       <div class="card">
         <h3>Zero network ports</h3>
-        <p>Frontend ↔ backend is Tauri IPC. App ↔ browser extension is Native Messaging over stdio — not reachable by any webpage.</p>
+        <p>Frontend ↔ backend is Tauri IPC. App ↔ browser extension is Native Messaging over stdio, not reachable by any webpage.</p>
       </div>
       <div class="card">
         <h3>No cloud, no telemetry</h3>
@@ -129,11 +154,11 @@
       </div>
       <div class="card">
         <h3>Path scoping in Rust</h3>
-        <p>Watched folders must be the root of a git repository — validated server-side, never trusted to the UI.</p>
+        <p>Watched folders must be the root of a git repository, validated server-side, never trusted to the UI.</p>
       </div>
       <div class="card">
         <h3>One folder, no hidden state</h3>
-        <p>Compiled documents, screenshots, session data — everything lands where you choose, nothing scattered across the filesystem.</p>
+        <p>Compiled documents, screenshots, and session data all land where you choose, nothing scattered across the filesystem.</p>
       </div>
     </div>
   </div>
