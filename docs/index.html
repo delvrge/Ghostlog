@@ -73,7 +73,7 @@
   th{color:var(--muted); font-weight:600}
   footer{padding:48px 0 80px; text-align:center; color:var(--muted); font-size:.9rem}
   footer a{color:var(--muted)}
-  .footer-dot{display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef233c; animation:rec-blink 1.1s ease-in-out infinite; vertical-align:middle; margin-left:4px}
+  .footer-dot{display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef233c; animation:rec-blink 1.1s ease-in-out infinite; vertical-align:middle; margin-right:6px}
   code{background:var(--surface); padding:2px 6px; border-radius:4px; font-size:.9em}
 
   .shot-placeholder{
@@ -115,6 +115,7 @@
   .card{padding:28px}
   .card h3{font-size:1.15rem; margin-bottom:12px}
   .card p{font-size:1rem; line-height:1.6}
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
 
   ::-webkit-scrollbar{width:12px}
   ::-webkit-scrollbar-track{background:var(--surface)}
@@ -144,6 +145,7 @@
       </a>
       <a class="btn ghost" href="https://github.com/delvrge/GHLG">View source on GitHub</a>
     </div>
+    <p class="note" id="version-note">Current version 0.1.0 · 1.0.0 coming soon</p>
   </div>
 </header>
 
@@ -212,7 +214,7 @@
 
 <footer>
   <div class="wrap">
-    <p>Free and fully open-source. <span class="footer-dot"></span></p>
+    <p><span class="footer-dot"></span> Free and fully open-source.</p>
   </div>
 </footer>
 
@@ -232,6 +234,16 @@
     });
     const labels = { mac: 'Download for macOS', windows: 'Download for Windows', linux: 'Download for Linux' };
     document.getElementById('download-label').textContent = labels[os];
+
+    const versions = {
+      mac: { current: '0.1.0', next: '1.0.0' },
+      windows: { current: null, next: '1.0.0' },
+      linux: { current: null, next: '1.0.0' },
+    };
+    const v = versions[os];
+    document.getElementById('version-note').textContent = v.current
+      ? `Current version ${v.current} · ${v.next} coming soon`
+      : `Not released yet · ${v.next} coming soon`;
   })();
 </script>
 
