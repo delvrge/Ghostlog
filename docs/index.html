@@ -64,10 +64,18 @@
 
   .hero{position:relative}
   .why-local-first{position:relative}
-  .decor{position:absolute; width:170px; opacity:.92; pointer-events:none}
-  .decor-left{left:40px; top:150px}
-  .decor-right{right:40px; top:60px}
+  .decor{position:absolute; width:170px; pointer-events:none}
+  .decor-left{left:40px; top:260px; opacity:0; animation:ghost-drift 7s ease-in-out infinite}
+  .decor-right{right:40px; top:60px; opacity:.92}
   @media (max-width:1200px){ .decor{display:none} }
+
+  @keyframes ghost-drift{
+    0%   { opacity:0;   transform:translateY(-320px); }
+    18%  { opacity:1;   transform:translateY(-60px); }
+    45%  { opacity:1;   transform:translateY(0); }
+    70%  { opacity:1;   transform:translateY(20px); }
+    100% { opacity:0;   transform:translateY(60px); }
+  }
 
   .grid{grid-template-columns:repeat(2, 1fr); gap:28px}
   .card{padding:28px}
