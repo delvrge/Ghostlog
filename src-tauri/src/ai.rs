@@ -305,6 +305,61 @@ pub async fn describe_screenshot(image_b64: &str, mime: &str) -> Option<String> 
     if text.is_empty() { None } else { Some(text) }
 }
 
+#[derive(Deserialize)]
+struct TaskMatch {
+    #[serde(rename = "taskId")]
+    task_id: String,
+    column: String,
+}
+
+/// Looks for an open task whose title/description this commit appears to
+/// address, and what column it should move to. Returns `None` on no match,
+/// no endpoint configured, or any failure — a broken/unavailable model must
+/// never block or corrupt commit capture, same stance as summarize_capture.
+pub async fn match_commit_to_task(
+    open_tasks: &[crate::tasks::TaskCard],
+    commit_subject: &str,
+    diff: Option<&str>,
+) -> Option<(String, String)> {
+    let cfg = crate::storage::load_ai_config();
+    if cfg.endpoint.trim().is_empty() || open_tasks.is_empty() {
+        return None;
+    }
+
+    let task_list = open_tasks
+        .iter()
+        .map(|t| format!("- id: {}, column: {}, title: {}, description: {}", t.id, t.column, t.title, t.description))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let system = "You are a task-tracking assistant for a solo developer's Kanban board. \
+                  Given a git commit and a list of open task cards, decide whether the \
+                  commit clearly advances or completes exactly one of them. Be \
+                  conservative: only match when the commit's actual content (not just \
+                  wording) clearly relates to a specific card. If nothing clearly matches, \
+                  say so. Valid columns are \"todo\", \"doing\", \"done\" — only ever move a \
+                  card forward (todo -> doing -> done), never backward. Reply with ONLY a \
+                  JSON object: either {\"taskId\": \"...\", \"column\": \"doing\"|\"done\"} \
+                  for a clear match, or {\"taskId\": \"\", \"column\": \"\"} if nothing \
+                  matches. No text outside the JSON object.";
+    let user = format!(
+        "Open task cards:\n{task_list}\n\nCommit subject: {commit_subject}\n\n{}",
+        diff.map(|d| format!("Diff:\n```diff\n{d}\n```"))
+            .unwrap_or_else(|| "No diff available.".to_string())
+    );
+
+    let raw = call_llama_cpp(&cfg, system, &user, true).await.ok()?;
+    let cleaned = strip_code_fence(raw.trim());
+    let parsed: TaskMatch = serde_json::from_str(&cleaned).ok()?;
+    if parsed.task_id.is_empty() || !["todo", "doing", "done"].contains(&parsed.column.as_str()) {
+        return None;
+    }
+    if !open_tasks.iter().any(|t| t.id == parsed.task_id) {
+        return None;
+    }
+    Some((parsed.task_id, parsed.column))
+}
+
 /// Compile a batch of entry markdown into a single document. Falls back to
 /// a simple mock document if no endpoint is configured or the call fails.
 pub async fn compile_document(entry_markdown: &[String]) -> String {

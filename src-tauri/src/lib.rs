@@ -6,6 +6,7 @@ mod ai;
 mod commands;
 mod state;
 mod storage;
+mod tasks;
 mod tray;
 mod watcher;
 
@@ -24,6 +25,62 @@ pub fn capture_from_git_commit_cli(repo: &Path) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?
         .block_on(storage::capture_from_git_commit(&canonical))
+}
+
+/// Entry point for `ghlg --ghlg-task <subcommand> ...` (see main.rs) — lets
+/// any external tool, including a coding agent the user is driving (e.g.
+/// Claude Code), manage the Kanban board by shelling out to this binary,
+/// the same way the git hook already does for capture. Subcommands:
+///   list <project>
+///   add <project> <title> [--column todo|doing|done] [--tag task|bug|chore|feature] [--description "..."]
+///   move <project> <id> <column>
+///   delete <project> <id>
+/// Prints JSON to stdout on success; errors go to stderr with a non-zero exit.
+pub fn task_cli(args: &[String]) -> Result<(), String> {
+    let Some(subcommand) = args.first() else {
+        return Err("usage: --ghlg-task <list|add|move|delete> ...".into());
+    };
+    let rest = &args[1..];
+
+    match subcommand.as_str() {
+        "list" => {
+            let project = rest.first().ok_or("usage: --ghlg-task list <project>")?;
+            let cards = tasks::list_tasks(project)?;
+            println!("{}", serde_json::to_string_pretty(&cards).map_err(|e| e.to_string())?);
+        }
+        "add" => {
+            let project = rest.first().ok_or("usage: --ghlg-task add <project> <title> [--column c] [--tag t] [--description d]")?;
+            let mut title = None;
+            let mut column = "todo".to_string();
+            let mut tag = "task".to_string();
+            let mut description = String::new();
+            let mut i = 1;
+            while i < rest.len() {
+                match rest[i].as_str() {
+                    "--column" => { column = rest.get(i + 1).cloned().unwrap_or(column); i += 2; }
+                    "--tag" => { tag = rest.get(i + 1).cloned().unwrap_or(tag); i += 2; }
+                    "--description" => { description = rest.get(i + 1).cloned().unwrap_or_default(); i += 2; }
+                    other => { title = Some(other.to_string()); i += 1; }
+                }
+            }
+            let title = title.ok_or("missing <title>")?;
+            let card = tasks::create_task(project, &title, &description, &tag, &column, "cli")?;
+            println!("{}", serde_json::to_string_pretty(&card).map_err(|e| e.to_string())?);
+        }
+        "move" => {
+            let project = rest.first().ok_or("usage: --ghlg-task move <project> <id> <column>")?;
+            let id = rest.get(1).ok_or("usage: --ghlg-task move <project> <id> <column>")?;
+            let column = rest.get(2).ok_or("usage: --ghlg-task move <project> <id> <column>")?;
+            tasks::move_task(project, id, column, "cli")?;
+        }
+        "delete" => {
+            let project = rest.first().ok_or("usage: --ghlg-task delete <project> <id>")?;
+            let id = rest.get(1).ok_or("usage: --ghlg-task delete <project> <id>")?;
+            tasks::delete_task(project, id)?;
+        }
+        other => return Err(format!("unknown --ghlg-task subcommand: {other}")),
+    }
+    Ok(())
 }
 
 /// Entry point for the `--ghlg-shell-error <command> <exit_code>` CLI mode
@@ -166,6 +223,13 @@ pub fn run() {
             commands::set_run_in_background,
             commands::get_data_root,
             commands::set_data_root,
+            commands::list_tasks,
+            commands::list_all_tasks,
+            commands::create_task,
+            commands::move_task,
+            commands::update_task,
+            commands::delete_task,
+            commands::sync_board_with_ai,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

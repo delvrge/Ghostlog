@@ -685,6 +685,21 @@ pub async fn capture_from_git_commit(repo: &Path) -> Result<(), String> {
     let draft = crate::ai::summarize_capture(&note, diff_context).await;
     let (date, session_id) = create_session(&project)?;
     write_entry(&project, &date, &session_id, &draft.tag, &draft.title, &draft.summary, None)?;
+
+    // Best-effort: see if this commit clearly advances an open task card.
+    // Never let a failure here affect the capture above, which already
+    // succeeded — this is pure upside if it works, silent no-op if not.
+    if let Ok(open_tasks) = crate::tasks::list_tasks(&project) {
+        let open_tasks: Vec<_> = open_tasks.into_iter().filter(|t| t.column != "done").collect();
+        if !open_tasks.is_empty() {
+            if let Some((task_id, column)) =
+                crate::ai::match_commit_to_task(&open_tasks, &note, diff_context).await
+            {
+                let _ = crate::tasks::move_task(&project, &task_id, &column, "ai");
+            }
+        }
+    }
+
     Ok(())
 }
 

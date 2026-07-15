@@ -11,6 +11,7 @@ import Archive from "./screens/Archive";
 import SessionDetail from "./screens/SessionDetail";
 import Curate from "./screens/Curate";
 import Compile from "./screens/Compile";
+import Tasks from "./screens/Tasks";
 import Settings from "./screens/Settings";
 import { getWatchedFolders, type WatchedProject } from "./lib/watcher";
 import { setActiveProject } from "./lib/session";
@@ -21,11 +22,12 @@ type View =
   | { name: "session"; date: string; sessionId: string }
   | { name: "curate"; date: string; sessionId: string }
   | { name: "compile"; date: string; sessionId: string }
+  | { name: "tasks" }
   | { name: "settings" };
 
 const NAV_COLLAPSED_KEY = "ghlg:navCollapsed";
 
-const NAV_ICONS: Record<"home" | "archive" | "settings", ReactElement> = {
+const NAV_ICONS: Record<"home" | "archive" | "tasks" | "settings", ReactElement> = {
   home: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
@@ -34,6 +36,12 @@ const NAV_ICONS: Record<"home" | "archive" | "settings", ReactElement> = {
   archive: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 7v12a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7M4 7l1.5-3h13L20 7M10 12h4" />
+    </svg>
+  ),
+  tasks: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path strokeLinecap="round" d="M8 8v8M13 8v5M18 8v11" />
     </svg>
   ),
   settings: (
@@ -91,10 +99,17 @@ export default function App() {
   const nav = [
     { key: "home", label: "Home" },
     { key: "archive", label: "Archive" },
+    { key: "tasks", label: "Board" },
     { key: "settings", label: "Settings" },
   ] as const;
   const activeKey =
-    view.name === "home" ? "home" : view.name === "settings" ? "settings" : "archive";
+    view.name === "home"
+      ? "home"
+      : view.name === "settings"
+        ? "settings"
+        : view.name === "tasks"
+          ? "tasks"
+          : "archive";
 
   const navToggleButton = (
     <button
@@ -223,6 +238,7 @@ export default function App() {
             onBack={() => setView({ name: "session", date: view.date, sessionId: view.sessionId })}
           />
         )}
+        {view.name === "tasks" && <Tasks selectedProject={project} />}
         {view.name === "settings" && <Settings folders={folders} onFoldersChanged={refresh} />}
       </main>
     </div>

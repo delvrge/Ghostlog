@@ -24,6 +24,14 @@ fn main() {
             }
             return;
         }
+        if flag == "--ghlg-task" {
+            let rest: Vec<String> = args.collect();
+            if let Err(e) = ghlg_lib::task_cli(&rest) {
+                eprintln!("GHLG task command failed: {e}");
+                std::process::exit(1);
+            }
+            return;
+        }
         if flag == "--ghlg-shell-error" {
             let command = args.next().unwrap_or_default();
             let exit_code = args.next().unwrap_or_default();

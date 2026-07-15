@@ -408,3 +408,87 @@ pub fn set_output_folder(path: String) -> Result<(), String> {
 pub fn export_document(filename: String, content: String) -> Result<String, String> {
     storage::export_document(&filename, &content)
 }
+
+// --- Kanban task board -----------------------------------------------------
+
+#[tauri::command]
+pub fn list_tasks(project: String) -> Result<Vec<crate::tasks::TaskCard>, String> {
+    crate::tasks::list_tasks(&project)
+}
+
+/// Every project's cards, tagged with the project name — backs the
+/// "All projects" board view.
+#[tauri::command]
+pub fn list_all_tasks() -> Result<Vec<(String, crate::tasks::TaskCard)>, String> {
+    crate::tasks::list_all_tasks()
+}
+
+#[tauri::command]
+pub fn create_task(
+    project: String,
+    title: String,
+    description: String,
+    tag: String,
+    column: String,
+) -> Result<crate::tasks::TaskCard, String> {
+    crate::tasks::create_task(&project, &title, &description, &tag, &column, "manual")
+}
+
+#[tauri::command]
+pub fn move_task(project: String, id: String, column: String) -> Result<(), String> {
+    crate::tasks::move_task(&project, &id, &column, "manual")
+}
+
+#[tauri::command]
+pub fn update_task(
+    project: String,
+    id: String,
+    title: String,
+    description: String,
+    tag: String,
+) -> Result<(), String> {
+    crate::tasks::update_task(&project, &id, &title, &description, &tag)
+}
+
+#[tauri::command]
+pub fn delete_task(project: String, id: String) -> Result<(), String> {
+    crate::tasks::delete_task(&project, &id)
+}
+
+/// Reviews recent captured sessions for a project against its open task
+/// cards and auto-moves any clear matches. Manual "Sync with AI" trigger —
+/// same matcher the git-commit hook uses per-commit, run here in bulk.
+#[tauri::command]
+pub async fn sync_board_with_ai(project: String) -> Result<usize, String> {
+    let open_tasks: Vec<_> = crate::tasks::list_tasks(&project)?
+        .into_iter()
+        .filter(|t| t.column != "done")
+        .collect();
+    if open_tasks.is_empty() {
+        return Ok(0);
+    }
+
+    let dates = storage::list_dates(&project)?;
+    let mut moved = 0usize;
+    for date in dates.iter().take(14) {
+        for meta in storage::list_sessions(&project, date)? {
+            for entry in storage::read_session(&project, date, &meta.session_id)? {
+                let still_open: Vec<_> = crate::tasks::list_tasks(&project)?
+                    .into_iter()
+                    .filter(|t| t.column != "done")
+                    .collect();
+                if still_open.is_empty() {
+                    return Ok(moved);
+                }
+                if let Some((task_id, column)) =
+                    crate::ai::match_commit_to_task(&still_open, &entry.title, Some(&entry.summary)).await
+                {
+                    if crate::tasks::move_task(&project, &task_id, &column, "ai").is_ok() {
+                        moved += 1;
+                    }
+                }
+            }
+        }
+    }
+    Ok(moved)
+}
